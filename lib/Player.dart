@@ -4,37 +4,34 @@ import 'package:flutter/services.dart';
 
 class Player extends StatefulWidget {
   final String _videoID;
-  final String _videoTitle;
+  final Function goHomeScreen;
 
-  Player(this._videoID, this._videoTitle);
+  const Player(this._videoID, this.goHomeScreen, {super.key});
 
   @override
-  PlayerState createState() => PlayerState(_videoID, _videoTitle);
+  PlayerState createState() => PlayerState();
 }
 
 class PlayerState extends State<Player> {
-  String _videoID;
-  String _videoTitle;
-
-  PlayerState(this._videoID, this._videoTitle);
+  late String _videoID;
+  late Function goHomeScreen;
 
   late YoutubePlayerController _controller;
 
-  // late double _screenWidth;
-
-  void _hideNavigationBar() {
-    SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
-  }
-
-  void _show() {
+  void showNavigationBar() {
     debugPrint('show');
-    // This will show both the top status bar and the bottom navigation bar
+
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual,
         overlays: [SystemUiOverlay.top, SystemUiOverlay.bottom]);
   }
 
   @override
   void initState() {
+    super.initState();
+
+    _videoID = widget._videoID;
+    goHomeScreen = widget.goHomeScreen;
+
     _controller = YoutubePlayerController(
       initialVideoId: _videoID,
       flags: const YoutubePlayerFlags(
@@ -47,32 +44,24 @@ class PlayerState extends State<Player> {
         enableCaption: true,
       ),
     );
-    // _screenWidth = MediaQuery.of(context).size.width;
-
-    _hideNavigationBar();
   }
 
   @override
   void dispose() {
     debugPrint("dispose~!~!");
-    _show();
+    showNavigationBar();
 
     super.dispose();
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-        appBar: AppBar(
-          title: Text(
-            '$_videoTitle',
-            style: TextStyle(fontSize: 20.0),
-          ),
-        ),
-        body: Center(
+    return Container(
+        height: MediaQuery.of(context).size.height,
+        child: Center(
           child: Column(
             children: [
-              Container(
+              SizedBox(
                 width: 0,
                 height: 0,
                 child: YoutubePlayer(
@@ -89,13 +78,15 @@ class PlayerState extends State<Player> {
                   ],
                 ),
               ),
+              OutlinedButton(onPressed: () => {}, child: Text("hide")),
+              OutlinedButton(onPressed: showNavigationBar, child: Text("show")),
               OutlinedButton(
-                  onPressed: _hideNavigationBar, child: Text("hide")),
-              OutlinedButton(onPressed: _show, child: Text("show")),
+                  onPressed: () => {goHomeScreen(), showNavigationBar()},
+                  child: Text('go back home')),
               Container(
                 width: 100,
                 height: 100,
-                color: Colors.red,
+                color: Colors.cyan,
               )
             ],
           ),
