@@ -3,20 +3,18 @@ import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:flutter/services.dart';
 
 class Player extends StatefulWidget {
-  final String _videoID;
   final Function goHomeScreen;
+  final YoutubePlayerController _youtubePlayerController;
 
-  const Player(this._videoID, this.goHomeScreen, {super.key});
+  const Player(this.goHomeScreen, this._youtubePlayerController, {super.key});
 
   @override
   PlayerState createState() => PlayerState();
 }
 
 class PlayerState extends State<Player> {
-  late String _videoID;
   late Function goHomeScreen;
-
-  late YoutubePlayerController _controller;
+  late YoutubePlayerController _youtubePlayerController;
 
   void showNavigationBar() {
     debugPrint('show');
@@ -29,21 +27,8 @@ class PlayerState extends State<Player> {
   void initState() {
     super.initState();
 
-    _videoID = widget._videoID;
     goHomeScreen = widget.goHomeScreen;
-
-    _controller = YoutubePlayerController(
-      initialVideoId: _videoID,
-      flags: const YoutubePlayerFlags(
-        mute: false,
-        autoPlay: true,
-        disableDragSeek: false,
-        loop: false,
-        isLive: false,
-        forceHD: false,
-        enableCaption: true,
-      ),
-    );
+    _youtubePlayerController = widget._youtubePlayerController;
   }
 
   @override
@@ -65,8 +50,8 @@ class PlayerState extends State<Player> {
                 width: 0,
                 height: 0,
                 child: YoutubePlayer(
-                  key: ObjectKey(_controller),
-                  controller: _controller,
+                  key: ObjectKey(_youtubePlayerController),
+                  controller: _youtubePlayerController,
                   actionsPadding: const EdgeInsets.only(left: 16.0),
                   bottomActions: [
                     CurrentPosition(),

@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:helloworld/player.dart';
+import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 
 void main() {
   debugPrint("main start");
@@ -41,6 +42,21 @@ class _MyHomePageState extends State<MyHomePage> {
 
   int _counter = 0;
 
+  bool isPlaying = false;
+
+  final _controller = YoutubePlayerController(
+    initialVideoId: 'UNKyDog278k',
+    flags: const YoutubePlayerFlags(
+      mute: false,
+      autoPlay: false,
+      disableDragSeek: false,
+      loop: false,
+      isLive: false,
+      forceHD: false,
+      enableCaption: true,
+    ),
+  );
+
   void _incrementCounter() {
     setState(() {
       // This call to setState tells the Flutter framework that something has
@@ -63,6 +79,24 @@ class _MyHomePageState extends State<MyHomePage> {
         duration: Duration(seconds: durationTime));
   }
 
+  void handlePressPlay() {
+    if (_controller.value.isPlaying) {
+      _controller.pause();
+
+      setState(() {
+        isPlaying = false;
+      });
+
+      return;
+    }
+
+    _controller.play();
+
+    setState(() {
+      isPlaying = true;
+    });
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
@@ -83,13 +117,24 @@ class _MyHomePageState extends State<MyHomePage> {
                                 hideNavigationBar()
                               },
                           child: Text("show")),
+                      Row(
+                        children: [
+                          IconButton(
+                              iconSize: 72,
+                              onPressed: handlePressPlay,
+                              icon: isPlaying
+                                  ? const Icon(Icons.pause_outlined)
+                                  : const Icon(Icons.play_arrow_outlined)),
+                        ],
+                      )
                     ],
                   ),
                 )),
             Container(
               key: playerScreenKey,
-              child: Player('BBdC1rl5sKY',
-                  () => {moveToScreen(playListScreenKey.currentContext)}),
+              child: Player(
+                  () => {moveToScreen(playListScreenKey.currentContext)},
+                  _controller),
             )
           ],
         ));
