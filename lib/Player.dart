@@ -63,11 +63,12 @@ class PlayerState extends State<Player> {
                   ],
                 ),
               ),
-              OutlinedButton(onPressed: () => {}, child: Text("hide")),
-              OutlinedButton(onPressed: showNavigationBar, child: Text("show")),
+              OutlinedButton(onPressed: () => {}, child: const Text("hide")),
+              OutlinedButton(
+                  onPressed: showNavigationBar, child: const Text("show")),
               OutlinedButton(
                   onPressed: () => {goHomeScreen(), showNavigationBar()},
-                  child: Text('go back home')),
+                  child: const Text('go back home')),
               Container(
                 width: 100,
                 height: 100,

@@ -1,7 +1,15 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:helloworld/player.dart';
+import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+
+class VideoItem {
+  final String id;
+  final String title;
+
+  VideoItem(this.id, this.title);
+}
 
 void main() {
   debugPrint("main start");
@@ -40,9 +48,13 @@ class _MyHomePageState extends State<MyHomePage> {
 
   int durationTime = 1;
 
-  int _counter = 0;
-
   bool isPlaying = false;
+
+  List<VideoItem> playList = [];
+
+  YoutubeExplode youtubeExplode = YoutubeExplode();
+
+  final textController = TextEditingController();
 
   final _controller = YoutubePlayerController(
     initialVideoId: 'UNKyDog278k',
@@ -56,17 +68,6 @@ class _MyHomePageState extends State<MyHomePage> {
       enableCaption: true,
     ),
   );
-
-  void _incrementCounter() {
-    setState(() {
-      // This call to setState tells the Flutter framework that something has
-      // changed in this State, which causes it to rerun the build method below
-      // so that the display can reflect the updated values. If we changed
-      // _counter without calling setState(), then the build method would not be
-      // called again, and so nothing would appear to happen.
-      _counter++;
-    });
-  }
 
   void hideNavigationBar() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
@@ -97,10 +98,39 @@ class _MyHomePageState extends State<MyHomePage> {
     });
   }
 
+  Future<void> handlePressAdd() async {
+    String url = textController.text;
+
+    if (url.isEmpty) {
+      return;
+    }
+
+    String? videoId = YoutubePlayer.convertUrlToId(url);
+
+    if (videoId == null) {
+      return;
+    }
+
+    var videoData = await youtubeExplode.videos.get(url);
+
+    VideoItem videoItem = VideoItem(videoId, videoData.title);
+
+    setState(() {
+      playList = [...playList, videoItem];
+    });
+  }
+
+  @override
+  void dispose() {
+    textController.dispose();
+
+    super.dispose();
+  }
+
   @override
   Widget build(BuildContext context) {
     return SingleChildScrollView(
-        physics: NeverScrollableScrollPhysics(),
+        physics: const NeverScrollableScrollPhysics(),
         child: Column(
           children: [
             Container(
@@ -116,7 +146,21 @@ class _MyHomePageState extends State<MyHomePage> {
                                 moveToScreen(playerScreenKey.currentContext),
                                 hideNavigationBar()
                               },
-                          child: Text("show")),
+                          child: const Text("show")),
+                      Card(
+                          child: Row(children: [
+                        Flexible(
+                            child: TextField(
+                                controller: textController,
+                                decoration: const InputDecoration(
+                                    border: OutlineInputBorder(),
+                                    hintText:
+                                        'https://youtube.com/shorts/JGqRKgZ7HIU'))),
+                        IconButton(
+                            iconSize: 40,
+                            onPressed: handlePressAdd,
+                            icon: const Icon(Icons.add))
+                      ])),
                       Row(
                         children: [
                           IconButton(
@@ -126,7 +170,17 @@ class _MyHomePageState extends State<MyHomePage> {
                                   ? const Icon(Icons.pause_outlined)
                                   : const Icon(Icons.play_arrow_outlined)),
                         ],
-                      )
+                      ),
+                      ListView.builder(
+                        itemCount: playList.length,
+                        itemBuilder: (context, index) {
+                          return Text(
+                            playList[index].title,
+                            style: const TextStyle(fontSize: 20),
+                          );
+                        },
+                        shrinkWrap: true,
+                      ),
                     ],
                   ),
                 )),
