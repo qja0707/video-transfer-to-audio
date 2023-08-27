@@ -52,12 +52,16 @@ class _MyHomePageState extends State<MyHomePage> {
 
   List<VideoItem> playList = [];
 
+  int playIndex = 0;
+
+  String currentPlayVideoId = '';
+
   YoutubeExplode youtubeExplode = YoutubeExplode();
 
   final textController = TextEditingController();
 
   final _controller = YoutubePlayerController(
-    initialVideoId: 'UNKyDog278k',
+    initialVideoId: '',
     flags: const YoutubePlayerFlags(
       mute: false,
       autoPlay: false,
@@ -78,6 +82,28 @@ class _MyHomePageState extends State<MyHomePage> {
 
     Scrollable.ensureVisible(context,
         duration: Duration(seconds: durationTime));
+  }
+
+  void handlePressChangeVideo(bool isNext) {
+    int direction = isNext ? 1 : -1;
+
+    int videoIndex = playIndex + direction;
+
+    if (videoIndex < 0) {
+      videoIndex = playList.length - 1;
+    } else if (videoIndex >= playList.length) {
+      videoIndex = 0;
+    }
+
+    if (isPlaying) {
+      _controller.load(playList[videoIndex].id);
+
+      debugPrint(_controller.metadata.toString());
+    }
+
+    setState(() {
+      playIndex = videoIndex;
+    });
   }
 
   void handlePressPlay() {
@@ -165,19 +191,29 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           IconButton(
                               iconSize: 72,
+                              onPressed: () => handlePressChangeVideo(false),
+                              icon: const Icon(Icons.skip_previous)),
+                          IconButton(
+                              iconSize: 72,
                               onPressed: handlePressPlay,
                               icon: isPlaying
                                   ? const Icon(Icons.pause_outlined)
-                                  : const Icon(Icons.play_arrow_outlined)),
+                                  : const Icon(Icons.play_arrow)),
+                          IconButton(
+                              iconSize: 72,
+                              onPressed: () => handlePressChangeVideo(true),
+                              icon: const Icon(Icons.skip_next)),
                         ],
                       ),
                       ListView.builder(
                         itemCount: playList.length,
                         itemBuilder: (context, index) {
-                          return Text(
-                            playList[index].title,
-                            style: const TextStyle(fontSize: 20),
-                          );
+                          return Text(playList[index].title,
+                              style: TextStyle(
+                                  fontSize: 20,
+                                  color: index == playIndex
+                                      ? Colors.blue
+                                      : Colors.black));
                         },
                         shrinkWrap: true,
                       ),
