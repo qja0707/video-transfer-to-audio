@@ -50,6 +50,10 @@ class _MyHomePageState extends State<MyHomePage> {
 
   bool isPlaying = false;
 
+  bool isChangingVideo = false;
+
+  double sliderPlaytime = 0;
+
   List<VideoItem> playList = [];
 
   int playIndex = 0;
@@ -73,6 +77,49 @@ class _MyHomePageState extends State<MyHomePage> {
     ),
   );
 
+  @override
+  void initState() {
+    super.initState();
+
+    _controller.addListener(() {
+      if (isChangingVideo) {
+        return;
+      }
+
+      if (isPlaying != _controller.value.isPlaying) {
+        setState(() {
+          isPlaying = _controller.value.isPlaying;
+        });
+      }
+      final totalDuration = _controller.metadata.duration.inSeconds;
+
+      final currentDuration = _controller.value.position.inSeconds;
+
+      if (totalDuration <= 0) {
+        return;
+      }
+
+      setState(() {
+        sliderPlaytime = currentDuration / totalDuration;
+      });
+
+      debugPrint(currentDuration.toString() + "/" + totalDuration.toString());
+
+      if (totalDuration != currentDuration) {
+        return;
+      }
+
+      handleChangeVideo(true);
+    });
+  }
+
+  @override
+  void dispose() {
+    textController.dispose();
+
+    super.dispose();
+  }
+
   void hideNavigationBar() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
   }
@@ -84,7 +131,9 @@ class _MyHomePageState extends State<MyHomePage> {
         duration: Duration(seconds: durationTime));
   }
 
-  void handlePressChangeVideo(bool isNext) {
+  void handleChangeVideo(bool isNext) {
+    isChangingVideo = true;
+
     int direction = isNext ? 1 : -1;
 
     int videoIndex = playIndex + direction;
@@ -95,18 +144,26 @@ class _MyHomePageState extends State<MyHomePage> {
       videoIndex = 0;
     }
 
-    if (isPlaying) {
-      _controller.load(playList[videoIndex].id);
+    _controller.load(playList[videoIndex].id);
 
-      debugPrint(_controller.metadata.toString());
+    debugPrint(_controller.metadata.toString());
+
+    if (isPlaying) {
+      _controller.play();
     }
 
     setState(() {
       playIndex = videoIndex;
     });
+
+    isChangingVideo = false;
   }
 
   void handlePressPlay() {
+    if (playList.isEmpty) {
+      return;
+    }
+
     if (_controller.value.isPlaying) {
       _controller.pause();
 
@@ -141,16 +198,15 @@ class _MyHomePageState extends State<MyHomePage> {
 
     VideoItem videoItem = VideoItem(videoId, videoData.title);
 
+    if (playList.isEmpty) {
+      _controller.load(videoItem.id);
+    }
+
     setState(() {
       playList = [...playList, videoItem];
     });
-  }
 
-  @override
-  void dispose() {
-    textController.dispose();
-
-    super.dispose();
+    textController.clear();
   }
 
   @override
@@ -180,8 +236,9 @@ class _MyHomePageState extends State<MyHomePage> {
                                 controller: textController,
                                 decoration: const InputDecoration(
                                     border: OutlineInputBorder(),
-                                    hintText:
-                                        'https://youtube.com/shorts/JGqRKgZ7HIU'))),
+                                    hintText: 'https://vedio.url',
+                                    hintStyle:
+                                        TextStyle(color: Colors.black12)))),
                         IconButton(
                             iconSize: 40,
                             onPressed: handlePressAdd,
@@ -191,7 +248,7 @@ class _MyHomePageState extends State<MyHomePage> {
                         children: [
                           IconButton(
                               iconSize: 72,
-                              onPressed: () => handlePressChangeVideo(false),
+                              onPressed: () => handleChangeVideo(false),
                               icon: const Icon(Icons.skip_previous)),
                           IconButton(
                               iconSize: 72,
@@ -201,10 +258,28 @@ class _MyHomePageState extends State<MyHomePage> {
                                   : const Icon(Icons.play_arrow)),
                           IconButton(
                               iconSize: 72,
-                              onPressed: () => handlePressChangeVideo(true),
+                              onPressed: () => handleChangeVideo(true),
                               icon: const Icon(Icons.skip_next)),
                         ],
                       ),
+                      Card(
+                          child: Column(
+                        children: [
+                          Slider(
+                              value: sliderPlaytime,
+                              onChanged: (double value) {
+                                debugPrint('move screen');
+
+                                _controller.seekTo(
+                                  Duration(
+                                      seconds: (_controller
+                                                  .metadata.duration.inSeconds *
+                                              value)
+                                          .floor()),
+                                );
+                              }),
+                        ],
+                      )),
                       ListView.builder(
                         itemCount: playList.length,
                         itemBuilder: (context, index) {
