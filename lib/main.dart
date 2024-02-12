@@ -1,14 +1,31 @@
+import 'dart:convert';
+import 'dart:developer';
+
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:helloworld/player.dart';
+import 'package:helloworld/assets/colors.dart';
+import 'package:shared_preferences/shared_preferences.dart';
 import 'package:youtube_explode_dart/youtube_explode_dart.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
+
+String keyPlaylist = 'playlist';
+String keyPlayIndex = 'playIndex';
 
 class VideoItem {
   final String id;
   final String title;
 
   VideoItem(this.id, this.title);
+
+  VideoItem.fromJson(json)
+      : id = json['id'],
+        title = json['title'];
+
+  Map toJson() => {
+        'id': id,
+        'title': title,
+      };
 }
 
 void main() {
@@ -63,6 +80,8 @@ class _MyHomePageState extends State<MyHomePage> {
   YoutubeExplode youtubeExplode = YoutubeExplode();
 
   final textController = TextEditingController();
+
+  final textFocus = FocusNode();
 
   final _controller = YoutubePlayerController(
     initialVideoId: '',
@@ -120,6 +139,44 @@ class _MyHomePageState extends State<MyHomePage> {
     super.dispose();
   }
 
+  void loadPlayList() async {
+    try {
+      final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+      var data = prefs.getString(keyPlaylist);
+      var index = prefs.getInt(keyPlayIndex);
+      index ??= 0;
+
+      if (data == null) {
+        return;
+      }
+
+      var list = jsonDecode(data);
+
+      List<VideoItem> loadedPlayList = [];
+
+      for (final e in list) {
+        loadedPlayList.add(VideoItem.fromJson(e));
+      }
+
+      playIndex = index;
+
+      _controller.load(loadedPlayList[index].id);
+
+      setState(() {
+        playList = loadedPlayList;
+      });
+    } catch (e) {
+      debugPrint("error : " + e.toString());
+    }
+  }
+
+  void savePlayList(List<VideoItem> playList) async {
+    final SharedPreferences prefs = await SharedPreferences.getInstance();
+
+    prefs.setString(keyPlaylist, jsonEncode(playList));
+  }
+
   void hideNavigationBar() {
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.manual, overlays: []);
   }
@@ -151,6 +208,9 @@ class _MyHomePageState extends State<MyHomePage> {
     if (isPlaying) {
       _controller.play();
     }
+
+    SharedPreferences.getInstance()
+        .then((prefs) => prefs.setInt(keyPlayIndex, videoIndex));
 
     setState(() {
       playIndex = videoIndex;
@@ -202,11 +262,75 @@ class _MyHomePageState extends State<MyHomePage> {
       _controller.load(videoItem.id);
     }
 
+    var newList = [...playList, videoItem];
+
+    savePlayList(newList);
+
     setState(() {
-      playList = [...playList, videoItem];
+      playList = newList;
     });
 
     textController.clear();
+
+    textFocus.unfocus();
+  }
+
+  renderListView() {
+    return Expanded(
+        child: ListView.separated(
+      separatorBuilder: (context, index) => const Divider(
+        height: 10,
+        color: Colors.transparent,
+      ),
+      itemCount: playList.length,
+      itemBuilder: (context, index) {
+        return DefaultTextStyle(
+            style: TextStyle(
+                fontSize: 20,
+                color: index == playIndex ? mainBlue : Colors.black,
+                fontWeight: FontWeight.normal),
+            child: Text(
+              playList[index].title,
+              maxLines: 1,
+              overflow: TextOverflow.ellipsis,
+            ));
+      },
+      shrinkWrap: true,
+    ));
+  }
+
+  renderSlider() {
+    return Material(
+        color: Colors.white,
+        child: Column(
+          children: [
+            Slider(
+                thumbColor: mainRed,
+                inactiveColor: mainGray,
+                activeColor: mainRed,
+                value: sliderPlaytime,
+                onChanged: (double value) {
+                  debugPrint('move screen');
+
+                  _controller.seekTo(
+                    Duration(
+                        seconds:
+                            (_controller.metadata.duration.inSeconds * value)
+                                .floor()),
+                  );
+                }),
+          ],
+        ));
+  }
+
+  renderHideButton() {
+    return OutlinedButton(
+        onPressed: () =>
+            {moveToScreen(playerScreenKey.currentContext), hideNavigationBar()},
+        child: const Text(
+          "HIDE",
+          style: TextStyle(color: mainPurple),
+        ));
   }
 
   @override
@@ -223,27 +347,33 @@ class _MyHomePageState extends State<MyHomePage> {
                 child: SafeArea(
                   child: Column(
                     children: [
-                      OutlinedButton(
-                          onPressed: () => {
-                                moveToScreen(playerScreenKey.currentContext),
-                                hideNavigationBar()
-                              },
-                          child: const Text("show")),
-                      Card(
+                      Material(
+                          color: Colors.white,
                           child: Row(children: [
-                        Flexible(
-                            child: TextField(
-                                controller: textController,
-                                decoration: const InputDecoration(
-                                    border: OutlineInputBorder(),
-                                    hintText: 'https://vedio.url',
-                                    hintStyle:
-                                        TextStyle(color: Colors.black12)))),
-                        IconButton(
-                            iconSize: 40,
-                            onPressed: handlePressAdd,
-                            icon: const Icon(Icons.add))
-                      ])),
+                            Flexible(
+                                child: TextField(
+                                    controller: textController,
+                                    focusNode: textFocus,
+                                    decoration: const InputDecoration(
+                                        // border: OutlineInputBorder(),
+                                        contentPadding: EdgeInsets.only(
+                                            left: 15, right: 15),
+                                        hintText:
+                                            'Click here and put video URL',
+                                        hintStyle:
+                                            TextStyle(color: mainGray)))),
+                            IconButton(
+                              iconSize: 40,
+                              onPressed: handlePressAdd,
+                              icon: const Icon(
+                                Icons.add,
+                              ),
+                              color: mainRed,
+                            ),
+                          ])),
+                      renderListView(),
+                      renderHideButton(),
+                      renderSlider(),
                       Row(
                         children: [
                           IconButton(
@@ -262,36 +392,6 @@ class _MyHomePageState extends State<MyHomePage> {
                               icon: const Icon(Icons.skip_next)),
                         ],
                       ),
-                      Card(
-                          child: Column(
-                        children: [
-                          Slider(
-                              value: sliderPlaytime,
-                              onChanged: (double value) {
-                                debugPrint('move screen');
-
-                                _controller.seekTo(
-                                  Duration(
-                                      seconds: (_controller
-                                                  .metadata.duration.inSeconds *
-                                              value)
-                                          .floor()),
-                                );
-                              }),
-                        ],
-                      )),
-                      ListView.builder(
-                        itemCount: playList.length,
-                        itemBuilder: (context, index) {
-                          return Text(playList[index].title,
-                              style: TextStyle(
-                                  fontSize: 20,
-                                  color: index == playIndex
-                                      ? Colors.blue
-                                      : Colors.black));
-                        },
-                        shrinkWrap: true,
-                      ),
                     ],
                   ),
                 )),
@@ -299,7 +399,8 @@ class _MyHomePageState extends State<MyHomePage> {
               key: playerScreenKey,
               child: Player(
                   () => {moveToScreen(playListScreenKey.currentContext)},
-                  _controller),
+                  _controller,
+                  loadPlayList),
             )
           ],
         ));

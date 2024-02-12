@@ -5,8 +5,11 @@ import 'package:flutter/services.dart';
 class Player extends StatefulWidget {
   final Function goHomeScreen;
   final YoutubePlayerController _youtubePlayerController;
+  final Function youtubePlayerOnReady;
 
-  const Player(this.goHomeScreen, this._youtubePlayerController, {super.key});
+  const Player(this.goHomeScreen, this._youtubePlayerController,
+      this.youtubePlayerOnReady,
+      {super.key});
 
   @override
   PlayerState createState() => PlayerState();
@@ -15,6 +18,7 @@ class Player extends StatefulWidget {
 class PlayerState extends State<Player> {
   late Function goHomeScreen;
   late YoutubePlayerController _youtubePlayerController;
+  late Function youtubePlayerOnReady;
 
   void showNavigationBar() {
     debugPrint('show');
@@ -29,6 +33,7 @@ class PlayerState extends State<Player> {
 
     goHomeScreen = widget.goHomeScreen;
     _youtubePlayerController = widget._youtubePlayerController;
+    youtubePlayerOnReady = widget.youtubePlayerOnReady;
   }
 
   @override
@@ -61,6 +66,10 @@ class PlayerState extends State<Player> {
                     RemainingDuration(),
                     //FullScreenButton(),
                   ],
+                  onReady: () {
+                    debugPrint("controller onready");
+                    youtubePlayerOnReady();
+                  },
                 ),
               ),
               OutlinedButton(onPressed: () => {}, child: const Text("hide")),
