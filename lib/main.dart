@@ -1,5 +1,4 @@
 import 'dart:convert';
-import 'dart:developer';
 
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
@@ -122,7 +121,7 @@ class _MyHomePageState extends State<MyHomePage> {
         sliderPlaytime = currentDuration / totalDuration;
       });
 
-      debugPrint(currentDuration.toString() + "/" + totalDuration.toString());
+      // debugPrint(currentDuration.toString() + "/" + totalDuration.toString());
 
       if (totalDuration != currentDuration) {
         return;
@@ -159,9 +158,7 @@ class _MyHomePageState extends State<MyHomePage> {
         loadedPlayList.add(VideoItem.fromJson(e));
       }
 
-      playIndex = index;
-
-      _controller.load(loadedPlayList[index].id);
+      loadVideo(index);
 
       setState(() {
         playList = loadedPlayList;
@@ -201,7 +198,7 @@ class _MyHomePageState extends State<MyHomePage> {
       videoIndex = 0;
     }
 
-    _controller.load(playList[videoIndex].id);
+    loadVideo(videoIndex);
 
     debugPrint(_controller.metadata.toString());
 
@@ -275,6 +272,35 @@ class _MyHomePageState extends State<MyHomePage> {
     textFocus.unfocus();
   }
 
+  void loadVideo(int index) {
+    _controller.load(playList[index].id);
+
+    playIndex = index;
+  }
+
+  renderTextView() {
+    return Flexible(
+        child: TextField(
+            controller: textController,
+            focusNode: textFocus,
+            decoration: const InputDecoration(
+                // border: OutlineInputBorder(),
+                contentPadding: EdgeInsets.only(left: 15, right: 15),
+                hintText: 'Click here and put video URL',
+                hintStyle: TextStyle(color: mainGray))));
+  }
+
+  renderAddButton() {
+    return IconButton(
+      iconSize: 40,
+      onPressed: handlePressAdd,
+      icon: const Icon(
+        Icons.add,
+      ),
+      color: mainRed,
+    );
+  }
+
   renderListView() {
     return Expanded(
         child: ListView.separated(
@@ -284,16 +310,20 @@ class _MyHomePageState extends State<MyHomePage> {
       ),
       itemCount: playList.length,
       itemBuilder: (context, index) {
-        return DefaultTextStyle(
-            style: TextStyle(
-                fontSize: 20,
-                color: index == playIndex ? mainBlue : Colors.black,
-                fontWeight: FontWeight.normal),
-            child: Text(
-              playList[index].title,
-              maxLines: 1,
-              overflow: TextOverflow.ellipsis,
-            ));
+        return Card(
+            child: InkWell(
+          child: DefaultTextStyle(
+              style: TextStyle(
+                  fontSize: 20,
+                  color: index == playIndex ? mainBlue : Colors.black,
+                  fontWeight: FontWeight.normal),
+              child: Text(
+                playList[index].title,
+                maxLines: 1,
+                overflow: TextOverflow.ellipsis,
+              )),
+          onTap: () => {loadVideo(index)},
+        ));
       },
       shrinkWrap: true,
     ));
@@ -350,26 +380,8 @@ class _MyHomePageState extends State<MyHomePage> {
                       Material(
                           color: Colors.white,
                           child: Row(children: [
-                            Flexible(
-                                child: TextField(
-                                    controller: textController,
-                                    focusNode: textFocus,
-                                    decoration: const InputDecoration(
-                                        // border: OutlineInputBorder(),
-                                        contentPadding: EdgeInsets.only(
-                                            left: 15, right: 15),
-                                        hintText:
-                                            'Click here and put video URL',
-                                        hintStyle:
-                                            TextStyle(color: mainGray)))),
-                            IconButton(
-                              iconSize: 40,
-                              onPressed: handlePressAdd,
-                              icon: const Icon(
-                                Icons.add,
-                              ),
-                              color: mainRed,
-                            ),
+                            renderTextView(),
+                            renderAddButton(),
                           ])),
                       renderListView(),
                       renderHideButton(),
