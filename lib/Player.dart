@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:helloworld/assets/colors.dart';
 import 'package:youtube_player_flutter/youtube_player_flutter.dart';
 import 'package:flutter/services.dart';
 
@@ -15,10 +16,12 @@ class Player extends StatefulWidget {
   PlayerState createState() => PlayerState();
 }
 
-class PlayerState extends State<Player> {
+class PlayerState extends State<Player> with TickerProviderStateMixin {
   late Function goHomeScreen;
   late YoutubePlayerController _youtubePlayerController;
   late Function youtubePlayerOnReady;
+
+  late AnimationController indicatorController;
 
   void showNavigationBar() {
     debugPrint('show');
@@ -34,12 +37,19 @@ class PlayerState extends State<Player> {
     goHomeScreen = widget.goHomeScreen;
     _youtubePlayerController = widget._youtubePlayerController;
     youtubePlayerOnReady = widget.youtubePlayerOnReady;
+
+    indicatorController = AnimationController(
+        vsync: this, lowerBound: 0, upperBound: 1, value: 0);
+
+    indicatorController.addListener(() {});
   }
 
   @override
   void dispose() {
     debugPrint("dispose~!~!");
     showNavigationBar();
+
+    indicatorController.dispose();
 
     super.dispose();
   }
@@ -50,6 +60,7 @@ class PlayerState extends State<Player> {
         height: MediaQuery.of(context).size.height,
         child: Center(
           child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
             children: [
               SizedBox(
                 width: 0,
@@ -72,17 +83,46 @@ class PlayerState extends State<Player> {
                   },
                 ),
               ),
-              OutlinedButton(onPressed: () => {}, child: const Text("hide")),
-              OutlinedButton(
-                  onPressed: showNavigationBar, child: const Text("show")),
-              OutlinedButton(
-                  onPressed: () => {goHomeScreen(), showNavigationBar()},
-                  child: const Text('go back home')),
-              Container(
-                width: 100,
-                height: 100,
-                color: Colors.cyan,
-              )
+              GestureDetector(
+                  onLongPressStart: (details) {
+                    debugPrint("long press down");
+
+                    indicatorController.animateTo(1,
+                        duration: const Duration(seconds: 3));
+                  },
+                  onLongPressEnd: (longPressEndDetails) {
+                    debugPrint("long press up");
+
+                    if (indicatorController.value == 1) {
+                      goHomeScreen();
+
+                      showNavigationBar();
+                    }
+
+                    indicatorController.animateTo(0,
+                        duration: const Duration(seconds: 0));
+                  },
+                  child: Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      SizedBox(
+                        width: 100,
+                        height: 100,
+                        child: CircularProgressIndicator(
+                          color: mainBlue,
+                          value: indicatorController.value,
+                          strokeWidth: 7,
+                        ),
+                      ),
+                      Container(
+                        width: 50,
+                        height: 50,
+                        color: Colors.cyan,
+                      ),
+                    ],
+                  )
+                  //
+                  )
             ],
           ),
         ));
