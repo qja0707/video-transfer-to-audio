@@ -100,6 +100,7 @@ class _MyHomePageState extends State<MyHomePage> {
     super.initState();
 
     _controller.addListener(() {
+      debugPrint("isChangingVideo: " + isChangingVideo.toString());
       if (isChangingVideo) {
         return;
       }
@@ -143,6 +144,7 @@ class _MyHomePageState extends State<MyHomePage> {
       final SharedPreferences prefs = await SharedPreferences.getInstance();
 
       var data = prefs.getString(keyPlaylist);
+      debugPrint("data:::" + data.toString());
       var index = prefs.getInt(keyPlayIndex);
       index ??= 0;
 
@@ -158,7 +160,7 @@ class _MyHomePageState extends State<MyHomePage> {
         loadedPlayList.add(VideoItem.fromJson(e));
       }
 
-      loadVideo(index);
+      loadVideo(loadedPlayList, index);
 
       setState(() {
         playList = loadedPlayList;
@@ -185,6 +187,17 @@ class _MyHomePageState extends State<MyHomePage> {
         duration: Duration(seconds: durationTime));
   }
 
+  void checkIsChangedVideo() {
+    if (_controller.metadata.duration.inSeconds !=
+        _controller.value.position.inSeconds) {
+      isChangingVideo = false;
+
+      return;
+    }
+
+    Future.delayed(Duration(seconds: 1), checkIsChangedVideo);
+  }
+
   void handleChangeVideo(bool isNext) {
     isChangingVideo = true;
 
@@ -197,8 +210,8 @@ class _MyHomePageState extends State<MyHomePage> {
     } else if (videoIndex >= playList.length) {
       videoIndex = 0;
     }
-
-    loadVideo(videoIndex);
+    debugPrint("videoIndex:" + videoIndex.toString());
+    loadVideo(playList, videoIndex);
 
     debugPrint(_controller.metadata.toString());
 
@@ -213,7 +226,7 @@ class _MyHomePageState extends State<MyHomePage> {
       playIndex = videoIndex;
     });
 
-    isChangingVideo = false;
+    checkIsChangedVideo();
   }
 
   void handlePressPlay() {
@@ -272,7 +285,7 @@ class _MyHomePageState extends State<MyHomePage> {
     textFocus.unfocus();
   }
 
-  void loadVideo(int index) {
+  void loadVideo(List<VideoItem> playList, int index) {
     _controller.load(playList[index].id);
 
     playIndex = index;
@@ -322,7 +335,7 @@ class _MyHomePageState extends State<MyHomePage> {
                 maxLines: 1,
                 overflow: TextOverflow.ellipsis,
               )),
-          onTap: () => {loadVideo(index)},
+          onTap: () => {loadVideo(playList, index)},
         ));
       },
       shrinkWrap: true,
